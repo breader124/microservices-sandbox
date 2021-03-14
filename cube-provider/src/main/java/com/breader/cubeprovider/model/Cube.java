@@ -1,22 +1,42 @@
 package com.breader.cubeprovider.model;
 
+import lombok.Getter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.stream.IntStream;
 
+@Component
+@Getter
 public class Cube {
     private final List<List<List<String>>> space;
     private final List<Point> takenPoints;
-    private final String emptyLetter = "*";
 
-    public Cube(int cubeSize, String letter) {
-        space = new ArrayList<>();
-        takenPoints = new ArrayList<>();
-        initSpace(cubeSize * 2, letter);
+    private String letter;
+    private final int cubeSize;
+    private final String emptyLetter;
+
+    private final JsonFormatter jsonFormatter;
+
+    public Cube(@Value("${cube.size}") int cubeSize,
+                @Value("${space.size.multiplier}") int sizeMultiplier,
+                @Value("${cube.letter.nonempty}") String letter,
+                @Value("${cube.letter.empty}") String emptyLetter,
+                @Autowired JsonFormatter formatter) {
+        this.space = new ArrayList<>();
+        this.takenPoints = new ArrayList<>();
+        this.cubeSize = cubeSize;
+        this.letter = letter;
+        this.emptyLetter = emptyLetter;
+        this.jsonFormatter = formatter;
+        initSpace(cubeSize * sizeMultiplier);
     }
 
-    private void initSpace(int requiredSpaceAmount, String letter) {
-        int cubeSize = requiredSpaceAmount / 2;
+    private void initSpace(int requiredSpaceAmount) {
         for (int i = 0; i < requiredSpaceAmount; i++) {
             if (i >= cubeSize) {
                 letter = nextAlphabetLetter(letter);
@@ -25,13 +45,7 @@ public class Cube {
             for (int j = 0; j < requiredSpaceAmount; j++) {
                 space.get(i).add(new ArrayList<>());
                 for (int k = 0; k < requiredSpaceAmount; k++) {
-                    List<String> row = space.get(i).get(j);
-                    if (i >= cubeSize && j >= cubeSize && k >= cubeSize) {
-                        row.add(letter);
-                        takenPoints.add(new Point(String.valueOf(letter), i, j, k));
-                    } else {
-                        row.add(emptyLetter);
-                    }
+                    addLetterOnCords(i, j, k);
                 }
             }
         }
@@ -42,9 +56,27 @@ public class Cube {
             throw new IllegalArgumentException("Provided String is not one letter length");
         }
 
-        char[] codePoints = { (char) currentOne.codePointAt(0) };
+        char[] codePoints = {(char) currentOne.codePointAt(0)};
         ++codePoints[0];
         return new String(codePoints);
+    }
+
+    private void addLetterOnCords(int x, int y, int z) {
+        List<String> row = space.get(x).get(y);
+        if (isFieldForLetter(x, y, z)) {
+            row.add(letter);
+            int absXPos = x - cubeSize;
+            int absYPos = y - cubeSize;
+            int absZPos = z - cubeSize;
+            takenPoints.add(new Point(String.valueOf(letter), absXPos, absYPos, absZPos));
+        } else {
+            row.add(emptyLetter);
+        }
+    }
+
+    private boolean isFieldForLetter(int x, int y, int z) {
+        IntStream coordinates = IntStream.of(x, y, z);
+        return coordinates.allMatch(coordinate -> coordinate >= cubeSize && coordinate < 2 * cubeSize);
     }
 
     public void rotateX(double angle) {
@@ -69,6 +101,7 @@ public class Cube {
             service.shutdown();
             boolean result = service.awaitTermination(1, TimeUnit.SECONDS);
             if (result) {
+                takenPoints.clear();
                 applyPosChanges(pointPosChangeList);
             } else {
                 throw new RuntimeException("Rotation computation not completed in given time");
@@ -97,35 +130,30 @@ public class Cube {
         for (PointPosChange posChange : posChangeList) {
             Point oldPoint = posChange.getOldPoint();
             Point newPoint = posChange.getNewPoint().get();
-            removePoint(oldPoint);
-            addPoint(newPoint);
+            setPointLetter(oldPoint, newPoint);
+            takenPoints.add(newPoint);
         }
     }
 
-    // TODO
-    private void removePoint(Point p) {
+    private void setPointLetter(Point oldPoint, Point newPoint) {
         int spaceSize = space.size();
-        int x = ((int) p.getXPos()) + spaceSize;
-        int y = ((int) p.getYPos()) + spaceSize;
-        int z = ((int) p.getZPos()) + spaceSize;
+        int xOld = (int) (Math.round(oldPoint.getXPos()) + cubeSize);
+        int yOld = (int) (Math.round(oldPoint.getYPos()) + cubeSize);
+        int zOld = (int) (Math.round(oldPoint.getZPos()) + cubeSize);
+        int xNew = (int) (Math.round(newPoint.getXPos()) + cubeSize);
+        int yNew = (int) (Math.round(newPoint.getYPos()) + cubeSize);
+        int zNew = (int) (Math.round(newPoint.getZPos()) + cubeSize);
 
-        if (x > spaceSize || y > spaceSize || z > spaceSize || x < 0 || y < 0 || z < 0) {
+        IntStream coordinates = IntStream.of(xOld, yOld, zOld, xNew, yNew, zNew);
+        if (!coordinates.allMatch(coordinate -> coordinate >= 0 && coordinate < spaceSize)) {
             return;
         }
-        space.get(x).get(y).set(z, emptyLetter);
+        space.get(xOld).get(yOld).set(zOld, emptyLetter);
+        space.get(xNew).get(yNew).set(zNew, newPoint.getName());
     }
 
-    // TODO
-    private void addPoint(Point p) {
-        int spaceSize = space.size();
-        int x = ((int) p.getXPos()) + spaceSize;
-        int y = ((int) p.getYPos()) + spaceSize;
-        int z = ((int) p.getZPos()) + spaceSize;
-
-        if (x > spaceSize || y > spaceSize || z > spaceSize || x < 0 || y < 0 || z < 0) {
-            return;
-        }
-        space.get(x).get(y).set(z, p.getName());
+    public String asJson() {
+        return jsonFormatter.toJson(this);
     }
 
     @Override

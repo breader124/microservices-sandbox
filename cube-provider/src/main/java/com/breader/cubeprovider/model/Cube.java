@@ -21,18 +21,21 @@ public class Cube {
     private final String emptyLetter;
 
     private final JsonFormatter jsonFormatter;
+    private final StringFormatter stringFormatter;
 
     public Cube(@Value("${cube.size}") int cubeSize,
                 @Value("${space.size.multiplier}") int sizeMultiplier,
                 @Value("${cube.letter.nonempty}") String letter,
                 @Value("${cube.letter.empty}") String emptyLetter,
-                @Autowired JsonFormatter formatter) {
+                @Autowired JsonFormatter jsonFormatter,
+                @Autowired StringFormatter stringFormatter) {
         this.space = new ArrayList<>();
         this.takenPoints = new ArrayList<>();
         this.cubeSize = cubeSize;
         this.letter = letter;
         this.emptyLetter = emptyLetter;
-        this.jsonFormatter = formatter;
+        this.jsonFormatter = jsonFormatter;
+        this.stringFormatter = stringFormatter;
         initSpace(cubeSize * sizeMultiplier);
     }
 
@@ -153,7 +156,11 @@ public class Cube {
     }
 
     public String asJson() {
-        return jsonFormatter.toJson(this);
+        return jsonFormatter.asJson(this);
+    }
+
+    public String asString() {
+        return stringFormatter.asString(this);
     }
 
     @Override

@@ -12,7 +12,7 @@ import java.util.List;
 @Component
 public class JsonFormatterImpl implements JsonFormatter {
     @Override
-    public String toJson(Cube c) {
+    public String asJson(Cube c) {
         final ObjectMapper mapper = new ObjectMapper();
         try {
             List<Point> takenPoints = c.getTakenPoints();

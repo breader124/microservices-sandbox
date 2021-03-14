@@ -2,11 +2,10 @@ package com.breader.cubeprovider.controller;
 
 import com.breader.cubeprovider.model.Cube;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-@RestController("/cube")
+@RestController
+@RequestMapping("/cube")
 @RequiredArgsConstructor
 public class CubeRotationController {
     private final Cube cube;

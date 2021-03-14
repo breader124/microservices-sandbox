@@ -1,4 +1,4 @@
-package com.breader.cubeprovider;
+package com.breader.cubeprovider.controller;
 
 import com.breader.cubeprovider.model.Cube;
 import lombok.RequiredArgsConstructor;

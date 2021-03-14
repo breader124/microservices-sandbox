@@ -26,7 +26,9 @@ public class CubeProviderApplication implements CommandLineRunner {
     public void run(String... args) throws Exception {
         logger.info("cube.size={}", cubeSize);
 
-        Cube c = new Cube(cubeSize, 'A');
+        Cube c = new Cube(cubeSize, "A");
+        System.out.println(c);
+        c.rotateX(Math.PI / 2);
         System.out.println(c);
     }
 }

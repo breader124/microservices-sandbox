@@ -49,5 +49,4 @@ public class CubeRotationController {
         statisticsProxy.pushNewTransformation(new Transformation("z", zRad));
         return cube.asString();
     }
-
 }
